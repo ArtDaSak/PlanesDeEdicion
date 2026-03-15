@@ -28,18 +28,18 @@ const PricingConfig = {
   plans: {
     basic: {
       basePrice: 747000,
-      included: { shortVideos: 8, longVideos: 0 },
-      extraPrices: { shortVideo: 87000, longVideo: null },
+      included: { shortVideos: 12, longVideos: 0 },
+      extraPrices: { shortVideo: 97000, longVideo: null },
     },
     standard: {
       basePrice: 1797000,
-      included: { shortVideos: 10, longVideos: 2 },
-      extraPrices: { shortVideo: 157000, longVideo: 197000 },
+      included: { shortVideos: 18, longVideos: 2 },
+      extraPrices: { shortVideo: 187000, longVideo: 247000 },
     },
     advanced: {
       basePrice: 3097000,
-      included: { shortVideos: 10, longVideos: 2 },
-      extraPrices: { shortVideo: 157000, longVideo: 197000 },
+      included: { shortVideos: 18, longVideos: 2 },
+      extraPrices: { shortVideo: 187000, longVideo: 247000 },
     },
   },
   discounts: [
@@ -63,7 +63,7 @@ function CalculatePlanPrice({ planKey, shortVideos, longVideos, planQuantity = 1
   const minIncludedShort = plan.included.shortVideos;
   const minIncludedLong = plan.included.longVideos;
   
-  const minAllowedShort = planQuantity > 1 ? 5 : minIncludedShort;
+  const minAllowedShort = minIncludedShort;
 
   const safeShort = Math.max(minAllowedShort, Number.isFinite(shortVideos) ? Math.floor(shortVideos) : minAllowedShort);
   const safeLongRaw = Number.isFinite(longVideos)
@@ -75,34 +75,15 @@ function CalculatePlanPrice({ planKey, shortVideos, longVideos, planQuantity = 1
   const extraShortCount = Math.max(0, safeShort - minIncludedShort);
   const extraLongCount = Math.max(0, safeLong - minIncludedLong);
 
-  // Calcular videos no usados (solo para cortos por ahora, si baja de lo incluido)
-  const unusedShortCount = Math.max(0, minIncludedShort - safeShort);
 
   const extraShortCost = extraShortCount * plan.extraPrices.shortVideo;
   const extraLongCost = plan.extraPrices.longVideo
     ? extraLongCount * plan.extraPrices.longVideo
     : 0;
   
-  // Para Básico, queremos que 5 videos (3 no usados) resulten en exactamente $500.000 (descuento total de $247.000).
-  // Si no son exactamente 3 no usados, podemos descontar proporcionalmente o ajustar el total dinámicamente.
-  let unusedShortDiscount = 0;
-  if (planKey === "basic") {
-    // Para asegurar que dé el número redondo que pidió el usuario (5 videos = 500k base)
-    // Descuento exacto necesario = 747000 - 500000 = 247000.
-    // 247000 / 3 = 82333.33... lo redondeamos y evitamos centavos.
-    if (unusedShortCount === 3) {
-      unusedShortDiscount = 247000;
-    } else {
-      unusedShortDiscount = unusedShortCount * 82333; // aprox
-    }
-  } else {
-    unusedShortDiscount = unusedShortCount * plan.extraPrices.shortVideo;
-  }
-
   const base = plan.basePrice;
   const extras = extraShortCost + extraLongCost;
-  // Restamos el valor de los videos no usados del subtotal
-  const subtotal = base + extras - unusedShortDiscount;
+  const subtotal = base + extras;
 
   return {
     planKey,
@@ -113,8 +94,8 @@ function CalculatePlanPrice({ planKey, shortVideos, longVideos, planQuantity = 1
       extraLongCount,
       extraShortCost,
       extraLongCost,
-      unusedShortCount,
-      unusedShortDiscount
+      unusedShortCount: 0,
+      unusedShortDiscount: 0
     },
     base,
     subtotal
@@ -222,7 +203,7 @@ document.addEventListener("DOMContentLoaded", () => {
   // Estado inicial
   let currentState = {
     planKey: planSelect.value || "standard",
-    shortVideos: 10,
+    shortVideos: 18,
     longVideos: 2,
     planQuantity: 1,
   };
@@ -317,7 +298,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     // Deshabilitar botones si estamos en el mínimo
     const planConfig = PricingConfig.plans[currentState.planKey];
-    const minAllowedShort = currentState.planQuantity > 1 ? 5 : planConfig.included.shortVideos;
+    const minAllowedShort = planConfig.included.shortVideos;
     btnShortMinus.disabled = breakdown.quantities.shortVideos <= minAllowedShort;
     
     if (currentState.planKey === "basic") {
